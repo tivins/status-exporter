@@ -1,18 +1,16 @@
 #!/usr/bin/env php
 <?php
 /**
+ * Require:
+ *    PHP >= 7.4
  *
- * Download:
+ * Download and install:
+ *    git clone https://github.com/tivins/status-exporter.git && cp status-exporter/machineinfo /usr/local/bin
  *
- * git clone https://gist.github.com/fb2cc09b38bab1c33ab615bbcb424e0e.git machineinfo
- *
- * Usage:
- *
- * ./machineinfo
  */
 
 /**
- * Output data
+ * @var array Output data
  */
 $data = [
     'sys' => [
@@ -31,15 +29,14 @@ $data = [
     ],
 ];
 
-echo json_encode($data, JSON_PRETTY_PRINT), PHP_EOL;
+echo json_encode($data) . PHP_EOL;
 exit(0);
 
 // ------------------
 
 /**
- * @return array
  */
-function getUptimeInfo()
+function getUptimeInfo(): array
 {
     return [
         'cmd' => trim(shell_exec('uptime -p')),
@@ -48,9 +45,8 @@ function getUptimeInfo()
 }
 
 /**
- * @return array|false
  */
-function getMemInfo()
+function getMemInfo(): array
 {
     $mem = array_map(
         fn(string $line) => array_map('trim', explode(':', trim($line), 2)),
@@ -60,7 +56,6 @@ function getMemInfo()
 }
 
 /**
- * @return array
  */
 function getCPUInfo(): array
 {
@@ -79,22 +74,20 @@ function getCPUInfo(): array
 
 /**
  * Source: https://gist.github.com/rlemon/1780212
- *
- * @return array
  */
 function getCoreInformation(): array
 {
     $data  = file('/proc/stat');
-    $cores = array();
+    $cores = [];
     foreach ($data as $line) {
         if (preg_match('/^cpu[0-9]/', $line)) {
             $info    = explode(' ', $line);
-            $cores[] = array(
+            $cores[] = [
                 'user' => $info[1],
                 'nice' => $info[2],
                 'sys' => $info[3],
                 'idle' => $info[4]
-            );
+            ];
         }
     }
     return $cores;
@@ -103,6 +96,8 @@ function getCoreInformation(): array
 /**
  * Source: https://gist.github.com/rlemon/1780212
  *
+ * @param $stat1
+ * @param $stat2
  * @return array
  */
 function getCpuPercentages($stat1, $stat2): array
@@ -110,15 +105,15 @@ function getCpuPercentages($stat1, $stat2): array
     if (count($stat1) !== count($stat2)) {
         return [];
     }
-    $cpus = array();
+    $cpus = [];
     for ($i = 0, $l = count($stat1); $i < $l; $i++) {
-        $dif         = array();
+        $dif         = [];
         $dif['user'] = $stat2[$i]['user'] - $stat1[$i]['user'];
         $dif['nice'] = $stat2[$i]['nice'] - $stat1[$i]['nice'];
         $dif['sys']  = $stat2[$i]['sys'] - $stat1[$i]['sys'];
         $dif['idle'] = $stat2[$i]['idle'] - $stat1[$i]['idle'];
         $total       = array_sum($dif);
-        $cpu         = array();
+        $cpu         = [];
         foreach ($dif as $x => $y) $cpu[$x] = round($y / $total * 100, 1);
         $cpus['cpu' . $i] = $cpu;
     }
@@ -132,7 +127,6 @@ function getCpuPercentages($stat1, $stat2): array
  */
 function getCPUPercentage(): array
 {
-
     /* get core information (snapshot) */
     $stat1 = getCoreInformation();
     /* sleep on server for one second */
@@ -145,8 +139,11 @@ function getCPUPercentage(): array
 
 function getMailErr(): ?array
 {
+    return [];
+    /*
     if (!is_readable('/var/log/mail.err')) {
         return null;
     }
     return array_filter(file('/var/log/mail.err'), fn(string $line) => stripos($line, 'warning') !== false);
+    */
 }
